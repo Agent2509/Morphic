@@ -111,13 +111,13 @@ graph TD
 
 ### 1. One-Liner (once the repo is public)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mohdfaizanali/morphic/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Agent2509/Morphic/master/install.sh | bash
 ```
 
 ### 2. From Source
 ```bash
-git clone https://github.com/mohdfaizanali/morphic.git
-cd morphic
+git clone https://github.com/Agent2509/Morphic.git
+cd Morphic
 
 bun install
 bun run build

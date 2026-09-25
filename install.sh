@@ -60,7 +60,7 @@ elif [ -f "${SCRIPT_DIR}/bin/cli.ts" ]; then
 elif command -v git >/dev/null 2>&1; then
   echo "📥 Cloning Morphic repository to build binary..."
   TEMP_CLONE="$(mktemp -d)"
-  if git clone --depth=1 https://github.com/mohdfaizanali/morphic.git "${TEMP_CLONE}"; then
+  if git clone --depth=1 https://github.com/Agent2509/Morphic.git "${TEMP_CLONE}"; then
     echo "🔨 Compiling standalone binary..."
     (
       cd "${TEMP_CLONE}"
@@ -78,7 +78,7 @@ elif command -v git >/dev/null 2>&1; then
 else
   echo "✖ Could not find a Morphic build in the current directory, and git is not installed."
   echo "  Install from source instead:"
-  echo "    git clone https://github.com/mohdfaizanali/morphic.git"
+  echo "    git clone https://github.com/Agent2509/Morphic.git"
   echo "    cd morphic && bun install && bun run build && ./install.sh"
   exit 1
 fi

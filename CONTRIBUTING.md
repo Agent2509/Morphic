@@ -42,8 +42,8 @@ morphic/
 ### Getting Started
 ```bash
 # Clone the repository
-git clone https://github.com/mohdfaizanali/morphic.git
-cd morphic
+git clone https://github.com/Agent2509/Morphic.git
+cd Morphic
 
 # Install all workspace dependencies
 bun install
