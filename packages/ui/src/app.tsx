@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { execSync } from "child_process";
 import { Box, Text, useApp, useInput } from "ink";
 import { AgentController, type PermissionRequest } from "@morphic/core";
 import { getTheme, buildBanner, type ThemeName } from "./theme.js";
@@ -58,6 +59,21 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
   const [status, setStatus] = useState("Idle");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [currentStream, setCurrentStream] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
+  const [thinkingStartTime, setThinkingStartTime] = useState<number | undefined>(undefined);
+  const toolStartTimes = useRef<Map<string, number>>(new Map());
+  const [gitBranch, setGitBranch] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    try {
+      const branch = execSync("git rev-parse --abbrev-ref HEAD 2>/dev/null", {
+        encoding: "utf-8",
+      }).trim();
+      if (branch) setGitBranch(branch);
+    } catch {
+      // ignore
+    }
+  }, []);
   const [pendingPermission, setPendingPermission] = useState<PendingPermission | null>(null);
   const pendingRef = useRef<PendingPermission | null>(null);
   const mountedRef = useRef(true);
@@ -275,9 +291,12 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
             ]);
           },
           onToken: (token) => {
+            setIsThinking(false);
             setCurrentStream((prev) => prev + token);
           },
           onToolStart: (id, name, args) => {
+            setIsThinking(false);
+            toolStartTimes.current.set(id, Date.now());
             setLogs((prev) => [
               ...prev,
               {
@@ -285,10 +304,13 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
                 type: "tool_call",
                 toolName: name,
                 content: JSON.stringify(args),
+                args,
               },
             ]);
           },
           onToolFinish: (id, name, res) => {
+            const start = toolStartTimes.current.get(id);
+            const durationMs = start ? Date.now() - start : undefined;
             setLogs((prev) => [
               ...prev,
               {
@@ -297,6 +319,7 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
                 toolName: name,
                 content: res.success ? res.output : res.error || "Failed",
                 success: res.success,
+                durationMs,
               },
             ]);
           },
@@ -317,9 +340,12 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
         finalResult = await controller.run(promptText, {
           onStatusChange: (newStatus) => setStatus(newStatus),
           onToken: (token) => {
+            setIsThinking(false);
             setCurrentStream((prev) => prev + token);
           },
           onToolStart: (id, name, args) => {
+            setIsThinking(false);
+            toolStartTimes.current.set(id, Date.now());
             setLogs((prev) => [
               ...prev,
               {
@@ -327,10 +353,13 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
                 type: "tool_call",
                 toolName: name,
                 content: JSON.stringify(args),
+                args,
               },
             ]);
           },
           onToolFinish: (id, name, res) => {
+            const start = toolStartTimes.current.get(id);
+            const durationMs = start ? Date.now() - start : undefined;
             setLogs((prev) => [
               ...prev,
               {
@@ -339,6 +368,7 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
                 toolName: name,
                 content: res.success ? res.output : res.error || "Failed",
                 success: res.success,
+                durationMs,
               },
             ]);
           },
@@ -366,6 +396,8 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
         },
       ]);
     } finally {
+      setIsThinking(false);
+      setThinkingStartTime(undefined);
       setStatus("Idle");
       isRunningRef.current = false;
     }
@@ -389,6 +421,8 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
         provider={providerName}
         model={modelName}
         tier={tier}
+        gitBranch={gitBranch}
+        cwd={process.cwd()}
         permissionLevel={controller.getPermissions().getLevel()}
       />
 
@@ -401,7 +435,12 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
         />
       )}
 
-      <Stream logs={logs} currentStream={currentStream} />
+      <Stream
+        logs={logs}
+        currentStream={currentStream}
+        isThinking={isThinking}
+        thinkingStartTime={thinkingStartTime}
+      />
 
       {pendingPermission ? (
         <PermissionPrompt

@@ -14,16 +14,24 @@ export const Input: React.FC<InputProps> = ({
   value,
   onChange,
   onSubmit,
-  placeholder = "Ask Morphic anything...",
+  placeholder = "Ask Morphic to build, edit, or test anything...",
   disabled = false,
 }) => {
   return (
-    <Box marginTop={1} flexDirection="row">
+    <Box
+      flexDirection="row"
+      borderStyle="round"
+      borderColor={disabled ? "gray" : "cyan"}
+      paddingX={1}
+      marginTop={1}
+    >
       <Text color="cyan" bold>
         ❯{" "}
       </Text>
       {disabled ? (
-        <Text color="gray">Waiting for agent...</Text>
+        <Text color="yellow" italic>
+          Agent is working... (Ctrl+C to interrupt)
+        </Text>
       ) : (
         <TextInput
           value={value}
