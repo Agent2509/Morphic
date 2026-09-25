@@ -5,5 +5,12 @@ coverage/
 *.log
 .DS_Store
 
-# Morphic local runtime files
+# Environment and credentials
+.env
+.env.*
+*.env
+
+# Morphic local runtime files & databases
 .morphic/
+*.sqlite*
+*.db*

@@ -73,5 +73,5 @@ fi
 
 echo "======================================================"
 echo "  ✔ Morphic installation complete!"
-echo "  Run 'morphic calibrate' to auto-tune to your hardware."
+echo "  Run 'morphic' to launch guided setup and calibrate to your hardware."
 echo "======================================================"

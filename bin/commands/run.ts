@@ -295,17 +295,34 @@ export function registerRunCommand(program: Command): void {
 
       // Non-interactive mode: no Ink TUI when stdin is not a TTY (pipes, CI, scripts).
       if (!process.stdin.isTTY) {
-        if (!initialPrompt) {
+        let promptToRun = initialPrompt;
+        if (!promptToRun) {
+          try {
+            const chunks: Buffer[] = [];
+            for await (const chunk of process.stdin) {
+              chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+            }
+            const piped = Buffer.concat(chunks).toString("utf-8").trim();
+            if (piped) {
+              promptToRun = piped;
+            }
+          } catch {
+            // ignore stdin read error
+          }
+        }
+
+        if (!promptToRun) {
           console.error(
             "No prompt provided and stdin is not a TTY. Provide a prompt, e.g. morphic --auto \"...\""
           );
           cleanup(1);
+          return;
         }
 
         try {
           if (coordinator) {
-            const complexity = smartRouter.classifyComplexity(initialPrompt!);
-            const outcome = await coordinator.run(initialPrompt!, complexity, {
+            const complexity = smartRouter.classifyComplexity(promptToRun);
+            const outcome = await coordinator.run(promptToRun, complexity, {
               onToken: (token) => process.stdout.write(token),
               onAgentStart: (role) => process.stderr.write(`\n[agent:${role}]\n`),
               onStatusChange: (status) => process.stderr.write(`\n[${status}]\n`),
@@ -313,7 +330,7 @@ export function registerRunCommand(program: Command): void {
             process.stdout.write("\n");
             cleanup(outcome.success ? 0 : 1);
           } else {
-            await controller.run(initialPrompt!, {
+            await controller.run(promptToRun, {
               onToken: (token) => process.stdout.write(token),
               onToolStart: (_id, name) => process.stderr.write(`\n[tool:${name}] `),
               onStatusChange: (status) => process.stderr.write(`\n[${status}]\n`),
