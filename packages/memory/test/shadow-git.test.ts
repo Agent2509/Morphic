@@ -64,6 +64,26 @@ describe("ShadowGit safety", () => {
     expect(await fs.readFile(file, "utf-8")).toBe("v1");
   });
 
+  it("removes files created by the undone snapshot (exact revert)", async () => {
+    const shadow = new ShadowGit(dir);
+    await shadow.init();
+
+    await fs.writeFile(path.join(dir, "keep.txt"), "keep", "utf-8");
+    await shadow.snapshot("baseline");
+
+    await fs.writeFile(path.join(dir, "created.txt"), "agent made me", "utf-8");
+    await fs.mkdir(path.join(dir, "newdir"), { recursive: true });
+    await fs.writeFile(path.join(dir, "newdir", "nested.txt"), "nested", "utf-8");
+    await shadow.snapshot("agent changes");
+
+    const res = await shadow.undo();
+    expect(res.success).toBe(true);
+
+    await expect(fs.access(path.join(dir, "created.txt"))).rejects.toThrow();
+    await expect(fs.access(path.join(dir, "newdir", "nested.txt"))).rejects.toThrow();
+    expect(await fs.readFile(path.join(dir, "keep.txt"), "utf-8")).toBe("keep");
+  });
+
   it("round-trips messages containing pipe characters", async () => {
     const shadow = new ShadowGit(dir);
     await shadow.init();

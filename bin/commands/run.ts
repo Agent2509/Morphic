@@ -104,8 +104,12 @@ export function registerRunCommand(program: Command): void {
         }
       }
 
-      const chosenProvider = options.provider || config.provider || "ollama";
-      const providerRegistry = new ProviderRegistry();
+      // Honor the wizard's chosen cloud fallback model.
+      if (profile && config.fallbackModel && config.fallbackProvider === "deepseek") {
+        profile.runtimeConfig.cloudFallbackModel = config.fallbackModel;
+      }
+
+      const chosenProvider = options.provider || config.provider || "ollama";      const providerRegistry = new ProviderRegistry();
       const provider = providerRegistry.get(chosenProvider);
 
       if (!provider) {

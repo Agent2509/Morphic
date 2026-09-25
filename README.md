@@ -28,7 +28,7 @@ Morphic is a next-generation, self-calibrating autonomous AI coding agent writte
 4. **Deep Intelligence & Persistent Memory**:
    - **PageRank Repo Map**: Structural codebase map ranking symbol centrality using PageRank and ctags/AST symbol extraction.
    - **Knowledge Graph**: Persistent graph database storing codebase concepts, dependencies, and architectural constraints.
-   - **Shadow Git Snapshots & `/undo`**: Git-worktree snapshots (one per session baseline, plus a safety snapshot before undo) for one-command rollback of tracked changes. Untracked files are preserved.
+   - **Shadow Git Snapshots & `/undo`**: Git-worktree snapshots (one per session baseline, plus a safety snapshot before undo) for exact rollback — modified files are restored and files created since the snapshot are removed.
    - **SQLite WAL Session Store**: Persistent conversation and turn history across CLI reboots.
    - **Context Compactor**: Automatic sliding-window and summarization engine preventing token overflow.
 
@@ -148,7 +148,7 @@ morphic --permission-level 3 "Refactor the parser"
 # Calibrate hardware and benchmark local models
 morphic calibrate
 
-# Revert tracked changes to the last snapshot (git repos only)
+# Revert workspace to the last snapshot (git repos only; removes files created since)
 morphic undo
 
 # Inspect recent snapshot history
@@ -193,7 +193,7 @@ bun run typecheck:editors
 ```
 
 **Results:**
-- **217 tests passing**, 0 failing across 42 test files, ~96% line coverage (`bun test --coverage`).
+- **218 tests passing**, 0 failing across 42 test files, ~96% line coverage (`bun test --coverage`).
 - **100% strict TypeScript compliance** with zero compiler errors (`bun run typecheck`, plus `bun run typecheck:editors` for the VS Code extension).
 
 ---

@@ -112,32 +112,57 @@ export class ShadowGit {
 
       const target = await this.git(["rev-parse", "HEAD~1"]);
 
-      // Files touched by the snapshot being reverted
+      // Files touched by the snapshot being reverted (status: A/M/D)
       let filesChanged: string[] = [];
+      const addedFiles: string[] = [];
       try {
-        const diffFiles = await this.git([
+        const nameStatus = await this.git([
           "diff-tree",
           "--no-commit-id",
-          "--name-only",
+          "--name-status",
           "-r",
+          "-M",
           currentHead,
         ]);
-        filesChanged = diffFiles.split("\n").filter(Boolean);
+        for (const line of nameStatus.split("\n").filter(Boolean)) {
+          const parts = line.split("\t");
+          const status = parts[0];
+          const filePath = parts[parts.length - 1];
+          if (!filePath) continue;
+          filesChanged.push(filePath);
+          if (status.startsWith("A")) addedFiles.push(filePath);
+        }
       } catch {
-        // fallback
+        // fallback: no file list
       }
 
       // Record any uncommitted user work before mutating, so undo is itself recoverable
       await this.snapshot("Pre-undo safety snapshot");
 
       // Move HEAD + index back without touching the working tree, then restore
-      // tracked files to the target revision. Untracked/user-created files are preserved.
+      // tracked files to the target revision.
       await this.git(["reset", "--mixed", target]);
       await this.git(["checkout", target, "--", "."]);
 
+      // Exact revert: remove files that the undone snapshot created (and that
+      // therefore do not exist in the target revision).
+      let deletedCount = 0;
+      for (const rel of addedFiles) {
+        const abs = path.resolve(this.workTree, rel);
+        if (abs !== this.workTree && !abs.startsWith(this.workTree + path.sep)) {
+          continue; // never delete outside the work tree
+        }
+        try {
+          await fs.rm(abs, { force: true });
+          deletedCount++;
+        } catch {
+          // ignore
+        }
+      }
+
       return {
         success: true,
-        message: `Reverted workspace to snapshot before ${currentHead.slice(0, 8)} (${filesChanged.length} tracked files restored; untracked files preserved).`,
+        message: `Reverted workspace to snapshot before ${currentHead.slice(0, 8)} (${filesChanged.length} files changed; ${deletedCount} created files removed).`,
         revertedCommit: currentHead,
         filesChanged,
       };
