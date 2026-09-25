@@ -1,0 +1,15 @@
+{
+  "name": "@morphic/acp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@morphic/agents": "workspace:*",
+    "@morphic/calibration": "workspace:*",
+    "@morphic/core": "workspace:*",
+    "@morphic/providers": "workspace:*",
+    "@morphic/tools": "workspace:*"
+  }
+}

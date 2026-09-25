@@ -1,0 +1,9 @@
+node_modules/
+.bun/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Morphic local runtime files
+.morphic/

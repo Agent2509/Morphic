@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    name: Typecheck & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck (packages + tests + CLI)
+        run: bun run typecheck
+
+      - name: Install editor extension deps
+        working-directory: editors/vscode
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck (VS Code extension)
+        run: bun run typecheck:editors
+
+      - name: Run tests
+        run: bun test
+
+      - name: Build standalone binary
+        run: bun run build

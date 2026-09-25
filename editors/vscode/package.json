@@ -1,0 +1,82 @@
+{
+  "name": "morphic-vscode",
+  "displayName": "Morphic: AI Coding Agent",
+  "description": "Shape-shifts to your hardware. Codes like a team. Official VS Code extension for Morphic.",
+  "version": "0.1.0",
+  "publisher": "morphic",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "AI",
+    "Machine Learning"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "package": "bun run build && bunx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.8.2"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "morphic-sidebar-view",
+          "title": "Morphic",
+          "icon": "$(sparkle)"
+        }
+      ]
+    },
+    "views": {
+      "morphic-sidebar-view": [
+        {
+          "type": "webview",
+          "id": "morphic.chatView",
+          "name": "Morphic Chat & Pipeline"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "morphic.start",
+        "title": "Morphic: Open Chat",
+        "category": "Morphic"
+      },
+      {
+        "command": "morphic.calibrate",
+        "title": "Morphic: Calibrate Hardware",
+        "category": "Morphic"
+      },
+      {
+        "command": "morphic.undo",
+        "title": "Morphic: Undo Last Change",
+        "category": "Morphic"
+      }
+    ],
+    "configuration": {
+      "title": "Morphic",
+      "properties": {
+        "morphic.serverPath": {
+          "type": "string",
+          "default": "morphic",
+          "description": "Path to the morphic binary or 'morphic' if in PATH"
+        },
+        "morphic.permissionLevel": {
+          "type": "number",
+          "default": 2,
+          "enum": [1, 2, 3, 4],
+          "description": "Permission level: 1 (Strict), 2 (Standard), 3 (Relaxed), 4 (Auto)"
+        }
+      }
+    }
+  }
+}

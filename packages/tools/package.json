@@ -1,0 +1,13 @@
+{
+  "name": "@morphic/tools",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@morphic/safety": "workspace:*",
+    "@morphic/shared": "workspace:*",
+    "zod": "^3.24.2",
+    "zod-to-json-schema": "^3.24.3"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@morphic/ui",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@morphic/core": "workspace:*",
+    "@morphic/providers": "workspace:*",
+    "@morphic/calibration": "workspace:*",
+    "@morphic/agents": "workspace:*",
+    "chalk": "^5.4.1",
+    "ink": "^5.1.0",
+    "ink-text-input": "^5.0.1",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18"
+  }
+}
