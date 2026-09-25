@@ -3,7 +3,7 @@ import { ToolRegistry, readFileTool, shellExecTool } from "@morphic/tools";
 import { TESTER_PROMPT } from "../prompts/index.js";
 import type { AgentHandoff, TestResult } from "../types.js";
 import type { ModelProvider } from "@morphic/providers";
-import type { PermissionEngine } from "@morphic/core";
+import type { PermissionEngine, AgentEvents } from "@morphic/core";
 
 export class TesterAgent extends BaseAgent {
   constructor(options: {
@@ -32,11 +32,11 @@ export class TesterAgent extends BaseAgent {
 
   async process(
     handoff: AgentHandoff,
-    onToken?: (token: string) => void
+    onTokenOrEvents?: ((token: string) => void) | AgentEvents
   ): Promise<AgentHandoff> {
     const prompt = `Verify the recent changes.\n\nReviewer findings:\n${handoff.summary}\n\nRun relevant test or verification commands (e.g. "bun test" or "bun x tsc --noEmit") using shell_exec if applicable. Conclude with [TEST_STATUS: PASSED] or [TEST_STATUS: FAILED].`;
 
-    const response = await this.executeAgentLoop(prompt, onToken);
+    const response = await this.executeAgentLoop(prompt, onTokenOrEvents);
 
     const explicitlyFailed = response.includes("[TEST_STATUS: FAILED]");
     const explicitlyPassed =

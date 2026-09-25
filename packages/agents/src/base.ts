@@ -5,6 +5,7 @@ import {
   ContextManager,
   PermissionEngine,
   PermissionLevel,
+  type AgentEvents,
 } from "@morphic/core";
 import type { AgentHandoff, AgentRole } from "./types.js";
 
@@ -60,8 +61,13 @@ export abstract class BaseAgent {
 
   protected async executeAgentLoop(
     prompt: string,
-    onToken?: (token: string) => void
+    onTokenOrEvents?: ((token: string) => void) | AgentEvents
   ): Promise<string> {
+    const events: AgentEvents =
+      typeof onTokenOrEvents === "function"
+        ? { onToken: onTokenOrEvents }
+        : onTokenOrEvents || {};
+
     const context = new ContextManager({
       systemPrompt: this.systemPrompt,
       maxTokens: 32000,
@@ -79,13 +85,11 @@ export abstract class BaseAgent {
       signal: this.signal,
     });
 
-    return await controller.run(prompt, {
-      onToken,
-    });
+    return await controller.run(prompt, events);
   }
 
   abstract process(
     handoff: AgentHandoff,
-    onToken?: (token: string) => void
+    onTokenOrEvents?: ((token: string) => void) | AgentEvents
   ): Promise<AgentHandoff>;
 }

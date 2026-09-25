@@ -9,7 +9,7 @@ import { PLANNER_PROMPT } from "../prompts/index.js";
 import { BaseAgent } from "../base.js";
 import type { AgentHandoff } from "../types.js";
 import type { ModelProvider } from "@morphic/providers";
-import type { PermissionEngine } from "@morphic/core";
+import type { PermissionEngine, AgentEvents } from "@morphic/core";
 
 export class PlannerAgent extends BaseAgent {
   constructor(options: {
@@ -40,10 +40,10 @@ export class PlannerAgent extends BaseAgent {
 
   async process(
     handoff: AgentHandoff,
-    onToken?: (token: string) => void
+    onTokenOrEvents?: ((token: string) => void) | AgentEvents
   ): Promise<AgentHandoff> {
     const prompt = `User Request: "${handoff.summary}"\n\nCreate a clear plan. Break down necessary steps and list the files to inspect or modify.`;
-    const response = await this.executeAgentLoop(prompt, onToken);
+    const response = await this.executeAgentLoop(prompt, onTokenOrEvents);
 
     return {
       from: "planner",

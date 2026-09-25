@@ -3,7 +3,7 @@ import { ToolRegistry, readFileTool, grepSearchTool } from "@morphic/tools";
 import { REVIEWER_PROMPT } from "../prompts/index.js";
 import type { AgentHandoff, ReviewIssue } from "../types.js";
 import type { ModelProvider } from "@morphic/providers";
-import type { PermissionEngine } from "@morphic/core";
+import type { PermissionEngine, AgentEvents } from "@morphic/core";
 
 export class ReviewerAgent extends BaseAgent {
   constructor(options: {
@@ -33,11 +33,11 @@ export class ReviewerAgent extends BaseAgent {
 
   async process(
     handoff: AgentHandoff,
-    onToken?: (token: string) => void
+    onTokenOrEvents?: ((token: string) => void) | AgentEvents
   ): Promise<AgentHandoff> {
     const prompt = `Review the code changes made by the Coder.\n\nCoder Summary:\n${handoff.summary}\n\nInspect the modified files using read_file. Check for bugs, syntax mistakes, regressions, and type errors. Conclude with [REVIEW_STATUS: APPROVED] or [REVIEW_STATUS: REJECTED].`;
 
-    const response = await this.executeAgentLoop(prompt, onToken);
+    const response = await this.executeAgentLoop(prompt, onTokenOrEvents);
 
     const explicitlyRejected =
       response.includes("[REVIEW_STATUS: REJECTED]") ||

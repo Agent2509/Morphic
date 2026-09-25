@@ -84,6 +84,8 @@ export interface PipelineEvents {
   onHandoff?: (handoff: AgentHandoff) => void;
   onRetry?: (role: AgentRole, reason: string, count: number) => void;
   onToken?: (token: string, role: AgentRole) => void;
+  onToolStart?: (callId: string, name: string, args: any) => void;
+  onToolFinish?: (callId: string, name: string, result: any) => void;
   onStatusChange?: (status: string) => void;
   onError?: (err: Error) => void;
 }

@@ -249,6 +249,17 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
           },
           onAgentFinish: (role, handoff) => {
             setPipelineStatuses((prev) => ({ ...prev, [role]: "completed" }));
+            if (handoff.summary) {
+              setLogs((prev) => [
+                ...prev,
+                {
+                  id: `asst_${role}_${Date.now()}`,
+                  type: "assistant",
+                  content: `[${role.toUpperCase()}]\n${handoff.summary}`,
+                },
+              ]);
+            }
+            setCurrentStream("");
           },
           onRetry: (role, reason, count) => {
             setRetryCount(count);
@@ -265,6 +276,29 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
           },
           onToken: (token) => {
             setCurrentStream((prev) => prev + token);
+          },
+          onToolStart: (id, name, args) => {
+            setLogs((prev) => [
+              ...prev,
+              {
+                id,
+                type: "tool_call",
+                toolName: name,
+                content: JSON.stringify(args),
+              },
+            ]);
+          },
+          onToolFinish: (id, name, res) => {
+            setLogs((prev) => [
+              ...prev,
+              {
+                id: `${id}_res`,
+                type: "tool_result",
+                toolName: name,
+                content: res.success ? res.output : res.error || "Failed",
+                success: res.success,
+              },
+            ]);
           },
         });
         finalResult = outcome.summary;
@@ -311,14 +345,16 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
         });
       }
 
-      setLogs((prev) => [
-        ...prev,
-        {
-          id: `asst_${Date.now()}`,
-          type: "assistant",
-          content: finalResult,
-        },
-      ]);
+      if (!coordinator && finalResult) {
+        setLogs((prev) => [
+          ...prev,
+          {
+            id: `asst_${Date.now()}`,
+            type: "assistant",
+            content: finalResult,
+          },
+        ]);
+      }
       setCurrentStream("");
     } catch (err: any) {
       setLogs((prev) => [

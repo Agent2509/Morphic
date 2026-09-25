@@ -9,7 +9,7 @@ import { RESEARCHER_PROMPT } from "../prompts/index.js";
 import { BaseAgent } from "../base.js";
 import type { AgentHandoff } from "../types.js";
 import type { ModelProvider } from "@morphic/providers";
-import type { PermissionEngine } from "@morphic/core";
+import type { PermissionEngine, AgentEvents } from "@morphic/core";
 
 export class ResearcherAgent extends BaseAgent {
   constructor(options: {
@@ -40,12 +40,12 @@ export class ResearcherAgent extends BaseAgent {
 
   async process(
     handoff: AgentHandoff,
-    onToken?: (token: string) => void
+    onTokenOrEvents?: ((token: string) => void) | AgentEvents
   ): Promise<AgentHandoff> {
     const planText = handoff.summary || (handoff.plan ? JSON.stringify(handoff.plan) : "");
     const prompt = `Planner's Analysis:\n${planText}\n\nInvestigate the codebase. Read the relevant files, check imports, functions, and key symbols. Summarize architectural context and implementation constraints for the Coder.`;
 
-    const response = await this.executeAgentLoop(prompt, onToken);
+    const response = await this.executeAgentLoop(prompt, onTokenOrEvents);
 
     return {
       from: "researcher",

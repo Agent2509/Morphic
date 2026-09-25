@@ -155,7 +155,7 @@ export class PipelineCoordinator {
     let failed = false;
     let failedRole: AgentRole | undefined;
 
-    const agentMap: Record<AgentRole, { process: (h: AgentHandoff, onTok?: any) => Promise<AgentHandoff> }> = {
+    const agentMap: Record<AgentRole, { process: (h: AgentHandoff, events?: any) => Promise<AgentHandoff> }> = {
       planner: this.planner,
       researcher: this.researcher,
       coder: this.coder,
@@ -172,8 +172,19 @@ export class PipelineCoordinator {
 
       const agent = agentMap[role];
       try {
-        handoff = await agent.process(handoff, (token: string) => {
-          events.onToken?.(token, role);
+        handoff = await agent.process(handoff, {
+          onToken: (token: string) => {
+            events.onToken?.(token, role);
+          },
+          onToolStart: (id: string, name: string, args: any) => {
+            events.onToolStart?.(id, name, args);
+          },
+          onToolFinish: (id: string, name: string, result: any) => {
+            events.onToolFinish?.(id, name, result);
+          },
+          onStatusChange: (status: string) => {
+            events.onStatusChange?.(`[${role}] ${status}`);
+          },
         });
       } catch (err: any) {
         failed = true;

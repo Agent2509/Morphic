@@ -10,7 +10,7 @@ import {
 import { CODER_PROMPT } from "../prompts/index.js";
 import type { AgentHandoff } from "../types.js";
 import type { ModelProvider } from "@morphic/providers";
-import type { PermissionEngine } from "@morphic/core";
+import type { PermissionEngine, AgentEvents } from "@morphic/core";
 
 export class CoderAgent extends BaseAgent {
   constructor(options: {
@@ -42,7 +42,7 @@ export class CoderAgent extends BaseAgent {
 
   async process(
     handoff: AgentHandoff,
-    onToken?: (token: string) => void
+    onTokenOrEvents?: ((token: string) => void) | AgentEvents
   ): Promise<AgentHandoff> {
     let prompt = `Implement the requested code changes.\n\nContext & Requirements:\n${handoff.summary}`;
 
@@ -57,7 +57,7 @@ export class CoderAgent extends BaseAgent {
       prompt += `Fix all above issues completely. Use edit_file and create_file as necessary.`;
     }
 
-    const response = await this.executeAgentLoop(prompt, onToken);
+    const response = await this.executeAgentLoop(prompt, onTokenOrEvents);
 
     return {
       from: "coder",
