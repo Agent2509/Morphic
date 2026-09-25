@@ -55,6 +55,11 @@ describe("SmartRouter", () => {
     expect(
       router.classifyComplexity("Refactor the authentication architecture across multiple files to handle race conditions")
     ).toBeGreaterThanOrEqual(7);
+    expect(
+      router.classifyComplexity(
+        "Create a standalone CLI todo app in Node.js called todo.js that supports add, list, and done commands with JSON file persistence, and create a test script that runs all three commands to verify it works."
+      )
+    ).toBeGreaterThanOrEqual(7);
   });
 
   it("routes simple tasks locally", async () => {

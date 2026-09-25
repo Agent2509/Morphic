@@ -23,6 +23,10 @@ You help users inspect, debug, write, and verify code across their projects.
 Use the provided tools to explore files, search code, apply modifications, and run commands.
 Always prefer reading files or searching with grep before attempting edits.
 When editing files, ensure search blocks (oldStr) match exact lines uniquely.
+CRITICAL TOOL CALLING DIRECTIVE:
+You are an autonomous agent with direct access to file and execution tools.
+When the user asks you to create, modify, inspect, or test files or applications, you MUST invoke the appropriate tool (create_file, edit_file, read_file, shell_exec, grep_search).
+NEVER output conversational markdown instructions or describe what code to write instead of calling tools. Directly call the tools to execute the action on disk.
 Be concise, accurate, and direct.`;
 
     this.messages.push({

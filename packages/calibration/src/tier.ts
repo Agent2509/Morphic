@@ -35,8 +35,8 @@ export class TierClassifier {
         tierName: "Beast",
         rationale: `High-end hardware detected (${ram.totalGb}GB RAM, ${gpu.vramGb}GB VRAM). Capable of running large 14B-32B local models with 64K+ context.`,
         config: {
-          primaryLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:32b", "qwen2.5-coder:14b", "llama3.1:latest"], "llama3.1:latest"),
-          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:3b", "llama3.2:3b", "llama3.1:latest"], "qwen2.5-coder:3b"),
+          primaryLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:32b", "qwen2.5-coder:14b", "qwen2.5-coder:7b", "llama3.1:latest"], "qwen2.5-coder:14b"),
+          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b", "llama3.1:latest"], "qwen2.5-coder:7b"),
           cloudFallbackModel: "deepseek-chat",
           contextWindow: 65536,
           maxOutputTokens: 8192,
@@ -55,7 +55,7 @@ export class TierClassifier {
         rationale: `Power workstation/laptop detected (${ram.totalGb}GB RAM, ${cpu.cores} cores). Optimal for 7B-8B local models at 32K context with cloud fallback for complex tasks.`,
         config: {
           primaryLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:7b", "llama3.1:latest", "llama3.1:8b"], "qwen2.5-coder:7b"),
-          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:3b", "llama3.2:3b"], "qwen2.5-coder:3b"),
+          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b", "llama3.1:latest"], "qwen2.5-coder:7b"),
           cloudFallbackModel: "deepseek-chat",
           contextWindow: 32768,
           maxOutputTokens: 4096,
@@ -73,8 +73,8 @@ export class TierClassifier {
         tierName: "Standard",
         rationale: `Standard machine detected (${ram.totalGb}GB RAM, ${cpu.cores} cores). Fast with 3B-7B models at 16K context.`,
         config: {
-          primaryLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:3b", "llama3.2:3b", "llama3.1:latest"], "qwen2.5-coder:3b"),
-          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:1.5b", "qwen2.5-coder:3b"], "qwen2.5-coder:1.5b"),
+          primaryLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:7b", "qwen2.5-coder:3b", "llama3.1:latest"], "qwen2.5-coder:3b"),
+          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:3b", "qwen2.5-coder:1.5b", "llama3.1:latest"], "qwen2.5-coder:3b"),
           cloudFallbackModel: "deepseek-chat",
           contextWindow: 16384,
           maxOutputTokens: 4096,
@@ -92,8 +92,8 @@ export class TierClassifier {
         tierName: "Light",
         rationale: `Lightweight machine (${ram.totalGb}GB RAM). Suited for 1B-2B models at 8K context.`,
         config: {
-          primaryLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:1.5b", "qwen2.5-coder:3b"], "qwen2.5-coder:1.5b"),
-          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:0.5b", "qwen2.5-coder:1.5b"], "qwen2.5-coder:1.5b"),
+          primaryLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:3b", "qwen2.5-coder:1.5b", "llama3.1:latest"], "qwen2.5-coder:1.5b"),
+          fastLocalModel: this.pickModel(availableModels, ["qwen2.5-coder:1.5b", "qwen2.5-coder:0.5b"], "qwen2.5-coder:1.5b"),
           cloudFallbackModel: "deepseek-chat",
           contextWindow: 8192,
           maxOutputTokens: 2048,
@@ -129,6 +129,10 @@ export class TierClassifier {
     }
     if (available.length === 0) return "none";
     if (available.includes(fallback)) return fallback;
+    const coderMatch = available.find(
+      (m) => m.toLowerCase().includes("coder") || m.toLowerCase().includes("code")
+    );
+    if (coderMatch) return coderMatch;
     return available[0];
   }
 }

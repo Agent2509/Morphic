@@ -21,7 +21,7 @@ export class ModelRecommender {
       case "T4":
         return {
           recommendedCodingModel: "qwen2.5-coder:7b",
-          recommendedFastModel: "qwen2.5-coder:3b",
+          recommendedFastModel: "qwen2.5-coder:7b",
           pullCommand: "ollama pull qwen2.5-coder:7b",
           rationale: "With 32GB RAM and a high-core CPU, 7B models offer the highest coding accuracy at ~10 tok/s on CPU.",
         };

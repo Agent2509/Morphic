@@ -30,6 +30,15 @@ export class SmartRouter {
       "migrate",
       "microservice",
       "system design",
+      "standalone app",
+      "full stack",
+      "fullstack",
+      "pipeline",
+      "end-to-end",
+      "end to end",
+      "persistence",
+      "database",
+      "cli app",
     ];
 
     // Keywords signaling medium complexity
@@ -44,6 +53,14 @@ export class SmartRouter {
       "benchmark",
       "debug",
       "fix bug",
+      "todo app",
+      "cli tool",
+      "test script",
+      "rest api",
+      "endpoint",
+      "server",
+      "crud",
+      "auth",
     ];
 
     // Keywords signaling simple tasks
@@ -84,6 +101,34 @@ export class SmartRouter {
     return Math.min(10, Math.max(1, score));
   }
 
+  isActionableTask(prompt: string): boolean {
+    const text = prompt.toLowerCase();
+    const actionWords = [
+      "create",
+      "write",
+      "edit",
+      "modify",
+      "update",
+      "build",
+      "implement",
+      "fix",
+      "delete",
+      "remove",
+      "add",
+      "generate",
+      "refactor",
+      "test",
+      "run",
+      "exec",
+      "script",
+      "todo",
+    ];
+    return actionWords.some((w) => {
+      const regex = new RegExp(`\\b${w}\\b`, "i");
+      return regex.test(text);
+    });
+  }
+
   async decideRoute(
     prompt: string,
     profile: HardwareProfile,
@@ -122,8 +167,9 @@ export class SmartRouter {
     }
 
     if (options?.forceLocal || !cloudAvailable) {
+      const isActionable = this.isActionableTask(prompt);
       const model =
-        complexity <= 3
+        complexity <= 2 && !isActionable && profile.runtimeConfig.fastLocalModel !== "none"
           ? profile.runtimeConfig.fastLocalModel
           : profile.runtimeConfig.primaryLocalModel;
 
@@ -170,8 +216,13 @@ export class SmartRouter {
     // Complexity tier routing
     const simpleCutoff = Math.max(1, profile.runtimeConfig.routingThresholdComplexity - 2);
     if (complexity <= simpleCutoff) {
+      const isActionable = this.isActionableTask(prompt);
+      const model =
+        !isActionable && profile.runtimeConfig.fastLocalModel !== "none"
+          ? profile.runtimeConfig.fastLocalModel
+          : profile.runtimeConfig.primaryLocalModel;
       return localRoute(
-        profile.runtimeConfig.fastLocalModel || profile.runtimeConfig.primaryLocalModel,
+        model,
         `Simple task (Complexity ${complexity}/10). Local model is fast and free.`
       );
     }

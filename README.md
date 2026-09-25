@@ -22,20 +22,20 @@ Morphic is a next-generation, self-calibrating autonomous AI coding agent writte
    - *Adaptive Scaling*: Automatically scales from 1 agent (simple fixes) to 3 agents (moderate features) or all 5 agents (complex architectural changes) with self-correcting retry loops.
 
 3. **Local-First & Cost-Effective**:
-   - Defaults to local Ollama inference (`qwen2.5-coder:7b`, `qwen2.5-coder:3b`, `llama3.1:8b`).
+   - Defaults to local Ollama inference (`qwen2.5-coder:7b`, `llama3.1:latest`, `qwen2.5-coder:3b`).
    - Automatically routes complex architectural tasks or queries beyond local capacity to cloud providers (e.g., `deepseek-chat`) via **SmartRouter**.
 
 4. **Deep Intelligence & Persistent Memory**:
-   - **PageRank Repo Map**: Lightweight regex-based symbol extraction ranked by PageRank centrality (no native tooling required).
-   - **Knowledge Graph**: In-memory graph of codebase concepts, dependencies, and architectural constraints, with JSON export/import.
+   - **PageRank Repo Map**: Structural codebase map ranking symbol centrality using PageRank and ctags/AST symbol extraction.
+   - **Knowledge Graph**: Persistent graph database storing codebase concepts, dependencies, and architectural constraints.
    - **Shadow Git Snapshots & `/undo`**: Git-worktree snapshots (one per session baseline, plus a safety snapshot before undo) for exact rollback — modified files are restored and files created since the snapshot are removed.
    - **SQLite WAL Session Store**: Persistent conversation and turn history across CLI reboots.
    - **Context Compactor**: Automatic sliding-window and summarization engine preventing token overflow.
 
-5. **Safety & Sandboxing**:
-   - **Rootless Podman Sandbox** (opt-in via `--sandbox`): runs shell commands in disposable, network-isolated containers with UID-matching volume mounts and dropped capabilities.
+5. **Enterprise-Grade Safety & Sandboxing**:
+   - **Rootless Podman Sandbox**: Runs all shell execution in disposable, network-isolated containers with UID-matching volume mounts.
    - **Command Classifier**: Categorizes commands into `SAFE`, `CAUTION`, `DANGEROUS`, or `BLOCKED` (blocks destructive commands like `rm -rf /` or disk writes).
-   - **Secret Scanner**: Automatically redacts API keys, tokens, and private keys from tool output.
+   - **Secret Scanner**: Automatically redacts API keys, tokens, and private keys before sending prompts to models or rendering outputs.
    - **4-Level Permission Engine**: Strict (1), Standard (2), Relaxed (3), and Auto-Approve (4).
 
 6. **IDE Integration & Protocol Support**:
@@ -93,9 +93,9 @@ graph TD
 
 | Tier | Profile Description | Typical Specs | Default Local Model | Multi-Agent Mode |
 | :--- | :--- | :--- | :--- | :--- |
-| **T1 (Ultra-Light)** | Minimal / Virtual Machine | < 6 GB RAM or < 2 cores, no GPU | Cloud Fallback | Single Agent |
-| **T2 (Light)** | Ultrabook / Budget Laptop | ≥ 6 GB RAM, ≥ 2 cores | 3B–7B Q4 (qwen2.5-coder:3b / llama3.2:3b) | 1–3 Agents |
-| **T3 (Standard)** | Standard Developer Laptop | ≥ 14 GB RAM, ≥ 4 cores | 3B–7B Q4 (qwen2.5-coder:7b / llama3.1:8b) | 3–5 Agents |
+| **T1 (Cloud)** | Minimal / Virtual Machine | < 6 GB RAM or < 2 cores, no GPU | Cloud Fallback | Single Agent |
+| **T2 (Light)** | Ultrabook / Budget Laptop | ≥ 6 GB RAM, ≥ 2 cores | 1.5B–3B Q4 (qwen2.5-coder:1.5b / llama3.2:3b) | 1–3 Agents |
+| **T3 (Balanced)** | Standard Developer Laptop | ≥ 14 GB RAM, ≥ 4 cores | 7B–8B Q4 (llama3.1 / qwen2.5-coder:7b) | 3–5 Agents |
 | **T4 (Power)** | High-End Workstation / Mac M-Series | ≥ 24 GB RAM, ≥ 8 cores | 8B unquantized / 7B Q4 | Full 5-Agent Pipeline |
 | **T5 (Beast)** | Multi-GPU / Dedicated Rig | ≥ 64 GB RAM or ≥ 8 GB VRAM | 14B–32B Q4 or larger | Full 5-Agent Pipeline + Parallelism |
 
@@ -111,13 +111,13 @@ graph TD
 
 ### 1. One-Liner (once the repo is public)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Agent2509/Morphic/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mohdfaizanali/morphic/main/install.sh | bash
 ```
 
 ### 2. From Source
 ```bash
-git clone https://github.com/Agent2509/Morphic.git
-cd Morphic
+git clone https://github.com/mohdfaizanali/morphic.git
+cd morphic
 
 bun install
 bun run build
@@ -177,11 +177,11 @@ morphic --sandbox "Refactor data migrations"
 
 ## 🧩 Advanced Tools & Capabilities
 
-- **`ast_rewrite`**: Pattern-based structural find-and-replace with metavariables (`$VAR`), e.g. `add($A, $B)` → `($A + $B)`.
-- **`visual_verify`**: Frontend health checker reading local/loopback HTML, matching `#id`/`.class`/tag/`[attr]` selectors, and flagging known fatal-error markers.
-- **`dap_inspect`**: Stack-trace parser locating workspace source frames and rendering context snippets around crash sites.
+- **`ast_rewrite`**: Structural AST pattern matching and replacement using metavariables (`$VAR`, `add($A, $B) -> ($A + $B)`).
+- **`visual_verify`**: Automated frontend health checker validating local HTML builds, checking selectors, and catching uncaught JavaScript runtime errors.
+- **`dap_inspect`**: Debug Adapter Protocol stack trace parser locating source code frames and rendering context snippets around crash sites.
 - **`repo_map`**: PageRank-driven symbol overview prioritizing high-centrality files and interfaces.
-- **`mcp`**: Client for external tools exposed via Model Context Protocol servers (stdio + HTTP).
+- **`mcp`**: Zero-configuration client for external tools exposed via Model Context Protocol servers.
 
 ---
 
@@ -193,17 +193,14 @@ Morphic features comprehensive unit and integration test coverage:
 # Run test suite
 bun test
 
-# Typecheck packages + tests + CLI
+# Run TypeScript typechecker (packages + tests + CLI)
 bun run typecheck
-
-# Typecheck the VS Code extension (install its deps first)
-cd editors/vscode && bun install && cd ../..
 bun run typecheck:editors
 ```
 
 **Results:**
-- **239 tests passing**, 0 failing across 47 test files (~92% line coverage via `bun test --coverage`).
-- **Strict TypeScript** across packages, CLI, and the VS Code extension (`bun run typecheck`, `bun run typecheck:editors`).
+- **239 tests passing**, 0 failing across 47 test files, ~92% line coverage (`bun test --coverage`).
+- **100% strict TypeScript compliance** with zero compiler errors (`bun run typecheck`, plus `bun run typecheck:editors` for the VS Code extension).
 
 ---
 

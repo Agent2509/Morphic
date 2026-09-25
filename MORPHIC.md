@@ -6,7 +6,7 @@ A next-generation, self-calibrating AI coding agent that automatically adapts to
 
 ## Quick Context
 
-- **npm package**: `morphic` (not published yet; install from source)
+- **npm package**: `morphic-code`
 - **CLI command**: `morphic`
 - **Language**: TypeScript (Bun runtime)
 - **License**: Private (open-source later)
@@ -62,6 +62,6 @@ A next-generation, self-calibrating AI coding agent that automatically adapts to
 - GPU: None (Intel Iris Xe integrated)
 - Disk: 612 GB NVMe SSD
 - OS: Fedora 44
-- Ollama: v0.34.1 (fauma:3b @ 19.2 tok/s, llama3.1:8b @ 8.0 tok/s)
+- Ollama: v0.34.1 (qwen2.5-coder:7b @ 11.1 tok/s, llama3.1:latest @ 8.0 tok/s)
 - Container: Podman 5.8.4
 - Tier: T4 (Power)

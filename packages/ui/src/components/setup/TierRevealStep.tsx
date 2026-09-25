@@ -32,7 +32,7 @@ export const TierRevealStep: React.FC<TierRevealStepProps> = ({
       case "T2":
         return {
           headline: "Lightweight Developer Laptop",
-          desc: "Your machine can run fast 3B-7B models (like qwen2.5-coder:3b or llama3.2:3b) locally for daily tasks, scaling up to 3 agents (Planner ➔ Coder ➔ Tester).",
+          desc: "Your machine can run fast 1.5B-3B models (like qwen2.5-coder:1.5b or llama3.2:3b) locally for daily tasks, scaling up to 3 agents (Planner ➔ Coder ➔ Tester).",
           color: "cyan",
         };
       case "T3":
