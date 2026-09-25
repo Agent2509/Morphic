@@ -35,16 +35,26 @@
     "build": "bun run build:all",
     "build:all": "bun run build:bin",
     "build:bin": "bun build --compile --minify bin/cli.ts --outfile dist/morphic",
-    "install:global": "test -f dist/morphic || { echo '✖ dist/morphic missing — run bun run build first' >&2; exit 1; }; cp dist/morphic ~/.local/bin/morphic && chmod +x ~/.local/bin/morphic && echo '✔ Installed to ~/.local/bin/morphic'",
+    "install:global": "test -f dist/morphic || { echo '✖ dist/morphic missing — run bun run build first' >&2; exit 1; }; mkdir -p \"$HOME/.local/bin\"; cp dist/morphic \"$HOME/.local/bin/morphic\" && chmod +x \"$HOME/.local/bin/morphic\" && echo '✔ Installed to ~/.local/bin/morphic'",
     "release": "bun run build && bun run install:global"
   },
   "dependencies": {
+    "@morphic/acp": "workspace:*",
+    "@morphic/agents": "workspace:*",
+    "@morphic/calibration": "workspace:*",
+    "@morphic/core": "workspace:*",
+    "@morphic/mcp": "workspace:*",
+    "@morphic/memory": "workspace:*",
+    "@morphic/providers": "workspace:*",
+    "@morphic/safety": "workspace:*",
+    "@morphic/shared": "workspace:*",
+    "@morphic/tools": "workspace:*",
+    "@morphic/ui": "workspace:*",
     "commander": "^13.1.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/node": "^22.13.9",
-    "react-devtools-core": "^8.0.0",
     "typescript": "^5.8.2"
   }
 }

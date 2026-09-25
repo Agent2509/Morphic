@@ -6,7 +6,7 @@ A next-generation, self-calibrating AI coding agent that automatically adapts to
 
 ## Quick Context
 
-- **npm package**: `morphic-code`
+- **npm package**: `morphic` (not published yet; install from source)
 - **CLI command**: `morphic`
 - **Language**: TypeScript (Bun runtime)
 - **License**: Private (open-source later)

@@ -43,22 +43,44 @@ else
 fi
 
 # Build / link morphic CLI
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-}")" 2>/dev/null && pwd || pwd)"
 if [ -f "${SCRIPT_DIR}/dist/morphic" ]; then
   echo "📦 Installing standalone Morphic binary to ${BIN_DIR}/morphic..."
   cp "${SCRIPT_DIR}/dist/morphic" "${BIN_DIR}/morphic"
   chmod +x "${BIN_DIR}/morphic"
 elif [ -f "${SCRIPT_DIR}/bin/cli.ts" ]; then
-  echo "🔨 Linking local repository to ${BIN_DIR}/morphic..."
+  echo "🔨 Installing dependencies and linking ${BIN_DIR}/morphic..."
+  ( cd "${SCRIPT_DIR}" && bun install )
   {
     printf '#!/usr/bin/env bash\n'
     printf 'export PATH="${HOME}/.bun/bin:${PATH}"\n'
     printf 'exec bun %q "$@"\n' "${SCRIPT_DIR}/bin/cli.ts"
   } > "${BIN_DIR}/morphic"
   chmod +x "${BIN_DIR}/morphic"
+elif command -v git >/dev/null 2>&1; then
+  echo "📥 Cloning Morphic repository to build binary..."
+  TEMP_CLONE="$(mktemp -d)"
+  if git clone --depth=1 https://github.com/mohdfaizanali/morphic.git "${TEMP_CLONE}"; then
+    echo "🔨 Compiling standalone binary..."
+    (
+      cd "${TEMP_CLONE}"
+      bun install
+      bun run build
+      cp dist/morphic "${BIN_DIR}/morphic"
+      chmod +x "${BIN_DIR}/morphic"
+    )
+    rm -rf "${TEMP_CLONE}"
+  else
+    echo "✖ Failed to clone repository."
+    rm -rf "${TEMP_CLONE}"
+    exit 1
+  fi
 else
-  echo "📥 Installing global npm package..."
-  bun add -g morphic-code || npm install -g morphic-code
+  echo "✖ Could not find a Morphic build in the current directory, and git is not installed."
+  echo "  Install from source instead:"
+  echo "    git clone https://github.com/mohdfaizanali/morphic.git"
+  echo "    cd morphic && bun install && bun run build && ./install.sh"
+  exit 1
 fi
 
 # Ensure BIN_DIR is on PATH
