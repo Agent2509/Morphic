@@ -57,6 +57,7 @@ export interface ModelBenchmark {
   codeQualityScore?: number;
   editFormatScore?: number;
   benchmarked?: boolean;
+  sizeEstimated?: boolean;
 }
 
 export interface CloudBenchmark {

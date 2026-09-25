@@ -1,10 +1,13 @@
 import { z } from "zod";
 import type { Tool, ToolContext, ToolResult } from "@morphic/tools";
 import { StdioTransport } from "./transport/stdio.js";
+import { HttpTransport } from "./transport/http.js";
 import type {
+  HttpServerConfig,
   McpServerConfig,
   McpTool,
   McpToolInputSchema,
+  McpTransport,
   StdioServerConfig,
 } from "./types.js";
 
@@ -41,42 +44,40 @@ export function jsonSchemaToZod(schema: McpToolInputSchema | undefined): z.ZodOb
 }
 
 export class MorphicMcpClient {
-  private transport: StdioTransport | null = null;
+  private transport: McpTransport | null = null;
   private tools: McpTool[] = [];
 
   constructor(public serverName: string, private config: McpServerConfig) {}
 
   async connect(): Promise<void> {
-    if ("command" in this.config) {
-      this.transport = new StdioTransport(this.config as StdioServerConfig);
-      this.transport.start();
+    this.transport =
+      "command" in this.config
+        ? new StdioTransport(this.config as StdioServerConfig)
+        : new HttpTransport(this.config as HttpServerConfig);
+    this.transport.start();
 
-      try {
-        // Handshake
-        await this.transport.send("initialize", {
-          protocolVersion: "2024-11-05",
-          capabilities: {},
-          clientInfo: {
-            name: "morphic",
-            version: "0.1.0",
-          },
-        });
+    try {
+      // Handshake
+      await this.transport.send("initialize", {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: {
+          name: "morphic",
+          version: "0.1.0",
+        },
+      });
 
-        // Required by the MCP spec after a successful initialize
-        this.transport.notify("notifications/initialized", {});
+      // Required by the MCP spec after a successful initialize
+      this.transport.notify("notifications/initialized", {});
 
-        // Fetch tools
-        const listRes = await this.transport.send("tools/list", {});
-        if (listRes && Array.isArray(listRes.tools)) {
-          this.tools = listRes.tools;
-        }
-      } catch (err) {
-        this.close();
-        throw err;
+      // Fetch tools
+      const listRes = await this.transport.send("tools/list", {});
+      if (listRes && Array.isArray(listRes.tools)) {
+        this.tools = listRes.tools;
       }
-    } else {
-      // HTTP transport fallback or SSE
-      throw new Error(`HTTP MCP transport not supported for server ${this.serverName}`);
+    } catch (err) {
+      this.close();
+      throw err;
     }
   }
 

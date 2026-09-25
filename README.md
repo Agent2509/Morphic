@@ -193,7 +193,7 @@ bun run typecheck:editors
 ```
 
 **Results:**
-- **218 tests passing**, 0 failing across 42 test files, ~96% line coverage (`bun test --coverage`).
+- **239 tests passing**, 0 failing across 47 test files, ~92% line coverage (`bun test --coverage`).
 - **100% strict TypeScript compliance** with zero compiler errors (`bun run typecheck`, plus `bun run typecheck:editors` for the VS Code extension).
 
 ---

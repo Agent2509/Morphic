@@ -12,11 +12,16 @@ export class ModelBenchmarker {
   async benchmarkLocalModel(
     provider: OllamaProvider,
     modelName: string,
-    quick: boolean = false
+    quick: boolean = false,
+    sizeBytes?: number
   ): Promise<ModelBenchmark> {
     const prompt = quick
       ? "Write 1 line of TS: const add = (a: number, b: number) => a + b;"
       : "Write a TypeScript function reverseArray<T>(items: T[]): T[] that returns reversed array.";
+
+    const measuredSizeGb = sizeBytes && sizeBytes > 0
+      ? Math.round((sizeBytes / 1e9) * 10) / 10
+      : undefined;
 
     const startTime = performance.now();
     let firstTokenTime = 0;
@@ -52,23 +57,25 @@ export class ModelBenchmarker {
       const codeQualityScore = hasCode ? 0.85 : 0.5;
 
       return {
-        sizeGb: modelName.includes("3b") ? 2.0 : modelName.includes("8b") || modelName.includes("llama3.1") ? 4.9 : 3.5,
+        sizeGb: measuredSizeGb ?? (modelName.includes("3b") ? 2.0 : modelName.includes("8b") || modelName.includes("llama3.1") ? 4.9 : 3.5),
         throughputTps: Math.max(1.0, throughputTps),
         coldStartSeconds,
         codeQualityScore,
         editFormatScore: 0.7,
         benchmarked: true,
+        sizeEstimated: measuredSizeGb === undefined,
       };
     } catch {
       // In case of error or timeout, return conservative defaults and mark them
       // as unmeasured so routing does not treat them as real benchmarks.
       return {
-        sizeGb: 4.0,
+        sizeGb: measuredSizeGb ?? 4.0,
         throughputTps: 8.0,
         coldStartSeconds: 5.0,
         codeQualityScore: 0.7,
         editFormatScore: 0.6,
         benchmarked: false,
+        sizeEstimated: measuredSizeGb === undefined,
       };
     }
   }
@@ -111,6 +118,7 @@ export class ModelBenchmarker {
 
     const modelsList = await ollamaProvider.listModels();
     const modelBenchmarks: Record<string, ModelBenchmark> = {};
+    const sizeByName = new Map(modelsList.map((m) => [m.name, m.sizeBytes]));
 
     const targetModels = modelsList.map((m) => m.name);
     // Focus on 2 models max to keep calibration under 15-20s
@@ -127,7 +135,12 @@ export class ModelBenchmarker {
         progressPct: pct,
       });
 
-      const bench = await this.benchmarkLocalModel(ollamaProvider, modelName, quick);
+      const bench = await this.benchmarkLocalModel(
+        ollamaProvider,
+        modelName,
+        quick,
+        sizeByName.get(modelName)
+      );
       modelBenchmarks[modelName] = bench;
     }
 

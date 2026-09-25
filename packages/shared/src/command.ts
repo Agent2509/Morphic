@@ -3,19 +3,27 @@ export function normalizeCommand(command: string): string {
     .replace(/\\(?=[a-zA-Z])/g, "")
     .replace(/['"]/g, "")
     .replace(/\$\{?IFS\}?/g, " ")
+    .replace(/\/{2,}/g, "/")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 /**
  * Catastrophic command patterns that must never run, regardless of permission
- * level or alwaysAllow. Input is normalized first (quotes/backslashes/$IFS).
+ * level or alwaysAllow. Input is normalized first (quotes/backslashes/$IFS/slashes).
  */
 export const DESTRUCTIVE_PATTERNS: readonly RegExp[] = [
   // recursive/forced rm targeting filesystem root, a home dir, or cwd
   /\brm\s+(?:-[a-z]*[rf][a-z]*\s+)+(?:--no-preserve-root\s+)?(?:\/\S*|~\S*|\$HOME\S*|\$\{HOME\}\S*|\.(?=\s|$))(?=\s|$)/i,
+  // rm with a flag/expanded target coming from a variable (e.g. rm -$X /)
+  /\brm\b[^\n]*\s-[a-z]*\$[A-Za-z{]/i,
   /\bmkfs(\.[a-z0-9]+)?\b/i,
   /\bdd\s+[^\n]*of=\/dev\/(sd[a-z]|nvme[0-9]|hd[a-z]|vd[a-z])/i,
+  /\b(shred|truncate)\b[^\n]*\/dev\/(sd[a-z]|nvme[0-9]|hd[a-z]|vd[a-z])/i,
+  /\bfind\b[^\n]*(\/|~|\$HOME|\$\{HOME\})[^\n]*\s-delete\b/i,
+  // piping decoded/expanded payloads into a shell
+  /\b(base64|xxd|openssl)\b[^\n]*\|\s*(sudo\s+)?(bash|sh|zsh)\b/i,
+  /<\s*\(\s*(curl|wget)\b/i,
   /:\(\)\s*\{\s*:\|:&\s*\}\s*;\s*:/,
   /\b\w+\s*\(\s*\)\s*\{\s*\w+\s*\|\s*\w+\s*&/,
   />\s*\/dev\/[sh]d[a-z]/,
@@ -26,3 +34,4 @@ export function containsDestructiveCommand(command: string): boolean {
   const normalized = normalizeCommand(command);
   return DESTRUCTIVE_PATTERNS.some((pattern) => pattern.test(normalized));
 }
+

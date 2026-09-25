@@ -37,6 +37,9 @@ export class PodmanSandbox {
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._/:@-]*$/.test(image)) {
       throw new Error(`Invalid sandbox image reference: '${image}'`);
     }
+    if (cwd.includes(":") || cwd.includes(",")) {
+      throw new Error(`Invalid sandbox working directory: '${cwd}'`);
+    }
 
     const args = [
       "run",
@@ -45,6 +48,9 @@ export class PodmanSandbox {
       `--network=${network}`,
       `--memory=${memLimit}`,
       `--cpus=${cpuLimit}`,
+      "--pids-limit=256",
+      "--cap-drop=ALL",
+      "--security-opt=no-new-privileges",
       "--userns=keep-id",
       "-v",
       `${cwd}:/workspace:rw`,

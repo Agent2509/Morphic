@@ -7,27 +7,35 @@ export class ThermalMonitor {
       try {
         const thermalDir = "/sys/class/thermal";
         const entries = await fs.readdir(thermalDir);
-        const temps: number[] = [];
+        const all: number[] = [];
+        const cpuZones: number[] = [];
 
         for (const entry of entries) {
-          if (entry.startsWith("thermal_zone")) {
+          if (!entry.startsWith("thermal_zone")) continue;
+          try {
+            const tempStr = await fs.readFile(`${thermalDir}/${entry}/temp`, "utf-8");
+            const milli = parseInt(tempStr.trim(), 10);
+            if (isNaN(milli) || milli <= 0) continue;
+            const celsius = milli >= 1000 ? milli / 1000 : milli;
+            all.push(celsius);
+
+            let type = "";
             try {
-              const tempStr = await fs.readFile(`${thermalDir}/${entry}/temp`, "utf-8");
-              const milli = parseInt(tempStr.trim(), 10);
-              if (!isNaN(milli) && milli > 0) {
-                // sysfs temps are usually in millidegrees C
-                const celsius = milli > 1000 ? milli / 1000 : milli;
-                temps.push(celsius);
-              }
+              type = (await fs.readFile(`${thermalDir}/${entry}/type`, "utf-8")).trim().toLowerCase();
             } catch {
-              // skip unreadable zone
+              // ignore
             }
+            if (type.includes("x86_pkg_temp") || type.includes("cpu") || type.includes("soc") || type.includes("coretemp")) {
+              cpuZones.push(celsius);
+            }
+          } catch {
+            // skip unreadable zone
           }
         }
 
-        if (temps.length > 0) {
-          // Return max temperature found among active zones
-          return Math.round(Math.max(...temps));
+        const pool = cpuZones.length > 0 ? cpuZones : all;
+        if (pool.length > 0) {
+          return Math.round(Math.max(...pool));
         }
       } catch {
         // fallback

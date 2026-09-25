@@ -11,7 +11,8 @@ export class PowerManager {
         let batteryCapacity = 100;
         let charging = true;
         let isBattery = false;
-        let acOnline = true;
+        let acOnline = false;
+        let acFound = false;
 
         for (const entry of entries) {
           const lower = entry.toLowerCase();
@@ -29,6 +30,7 @@ export class PowerManager {
               // ignore
             }
           } else if (lower.startsWith("ac") || lower.startsWith("adp")) {
+            acFound = true;
             try {
               const onlineStr = await fs.readFile(`${psDir}/${entry}/online`, "utf-8");
               acOnline = onlineStr.trim() === "1";
@@ -38,7 +40,8 @@ export class PowerManager {
           }
         }
 
-        const onBattery = isBattery && !acOnline;
+        // If no AC adapter node exists but a battery does, assume we're on battery.
+        const onBattery = isBattery && (acFound ? !acOnline : true);
 
         return {
           onBattery,

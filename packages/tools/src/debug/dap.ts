@@ -1,5 +1,6 @@
 import { z } from "zod";
 import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import type { Tool, ToolContext, ToolResult } from "../types.js";
 import { resolveSafePath } from "../path-utils.js";
 
@@ -72,18 +73,26 @@ export const dapDebugTool: Tool<typeof DapDebugSchema> = {
         }
       }
 
+      const displayPath = (file: string): string => {
+        const rel = path.relative(context.cwd, path.resolve(context.cwd, file));
+        if (rel.startsWith("..") || path.isAbsolute(rel)) {
+          return `${path.basename(file)} (outside workspace)`;
+        }
+        return file;
+      };
+
       const report = [
         `DAP Inspection Report:`,
-        `Primary Failure Location: ${top.file}:${top.line}${top.col ? `:${top.col}` : ""}`,
+        `Primary Failure Location: ${displayPath(top.file)}:${top.line}${top.col ? `:${top.col}` : ""}`,
         contextSnippet ? `\nCode Context:\n${contextSnippet}` : "",
         `\nTotal Source Frames: ${frames.length}`,
-        ...frames.map((f, i) => `  [${i}] ${f.file}:${f.line}`),
+        ...frames.map((f, i) => `  [${i}] ${displayPath(f.file)}:${f.line}`),
       ].filter(Boolean).join("\n");
 
       return {
         success: true,
         output: report,
-        metadata: { topFrame: top, frameCount: frames.length },
+        metadata: { topFrame: { ...top, file: displayPath(top.file) }, frameCount: frames.length },
       };
     } catch (err: any) {
       return {

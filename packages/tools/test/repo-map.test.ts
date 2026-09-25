@@ -53,6 +53,17 @@ export function runMain() {
     expect(map).toContain("class Engine");
     expect(map).toContain("a.ts:");
     expect(map).toContain("function runMain");
+
+    // The imported-on module should rank above its consumer.
+    expect(map.indexOf("b.ts:")).toBeLessThan(map.indexOf("a.ts:"));
+  });
+
+  it("never returns an empty map just because the budget is tiny", async () => {
+    fs.writeFileSync(path.join(tmpDir, "only.ts"), `export class Only {}\n`, "utf-8");
+    const generator = new RepoMapGenerator();
+    const map = await generator.generateMap(tmpDir, 1);
+    expect(map).not.toContain("No codebase symbols found.");
+    expect(map.length).toBeGreaterThan(0);
   });
 
   it("repoMapTool executes successfully", async () => {

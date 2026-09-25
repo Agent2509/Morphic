@@ -1,8 +1,8 @@
 import { z } from "zod";
-import * as path from "node:path";
 import { exec } from "node:child_process";
 import { CommandClassifier, PodmanSandbox, SecretScanner } from "@morphic/safety";
 import type { Tool, ToolContext, ToolResult } from "../types.js";
+import { resolveSafePath } from "../path-utils.js";
 
 const optionalString = (inner: z.ZodTypeAny) =>
   z.preprocess((v) => (v === null || v === "" ? undefined : v), inner.optional());
@@ -22,11 +22,11 @@ export const shellExecTool: Tool<typeof ShellExecSchema> = {
   category: "exec",
   parameters: ShellExecSchema,
   async execute(args, context: ToolContext): Promise<ToolResult> {
-    const execCwd = args.cwd
-      ? path.isAbsolute(args.cwd)
-        ? args.cwd
-        : path.resolve(context.cwd, args.cwd)
-      : context.cwd;
+    const resolvedCwd = await resolveSafePath(context.cwd, args.cwd || ".");
+    if (!resolvedCwd.ok) {
+      return { success: false, output: "", error: resolvedCwd.error };
+    }
+    const execCwd = resolvedCwd.abs;
 
     const timeout = args.timeoutMs || 30000;
     const scanner = new SecretScanner();

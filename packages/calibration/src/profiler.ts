@@ -79,19 +79,31 @@ export class HardwareProfiler {
   }
 
   async detectGPU(): Promise<GPUSpec> {
-    // 1. Check NVIDIA
+    // 1. Check NVIDIA (may report multiple GPUs, one per line)
     try {
       const { stdout } = await execAsync("nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits");
-      const [name, memStr] = stdout.trim().split(",");
-      const vramMb = parseInt(memStr?.trim() || "0", 10);
-      return {
-        type: "discrete",
-        vendor: "nvidia",
-        model: name?.trim(),
-        vramGb: Math.round((vramMb / 1024) * 10) / 10,
-        cudaAvailable: true,
-        rocmAvailable: false,
-      };
+      let bestName = "";
+      let bestVramMb = 0;
+      for (const line of stdout.trim().split("\n")) {
+        const idx = line.lastIndexOf(",");
+        if (idx === -1) continue;
+        const name = line.slice(0, idx).trim();
+        const memMb = parseInt(line.slice(idx + 1).trim(), 10);
+        if (!isNaN(memMb) && memMb >= bestVramMb) {
+          bestVramMb = memMb;
+          bestName = name;
+        }
+      }
+      if (bestVramMb > 0) {
+        return {
+          type: "discrete",
+          vendor: "nvidia",
+          model: bestName,
+          vramGb: Math.round((bestVramMb / 1024) * 10) / 10,
+          cudaAvailable: true,
+          rocmAvailable: false,
+        };
+      }
     } catch {
       // Not nvidia
     }
@@ -99,10 +111,21 @@ export class HardwareProfiler {
     // 2. Check ROCm / AMD
     try {
       const { stdout } = await execAsync("rocm-smi --showmeminfo vram --json");
+      let vramBytes = 0;
+      try {
+        const parsed = JSON.parse(stdout);
+        for (const card of Object.values<any>(parsed)) {
+          const total = Number(card?.["VRAM Total Memory (B)"] ?? card?.["vram_total"] ?? 0);
+          if (Number.isFinite(total) && total > vramBytes) vramBytes = total;
+        }
+      } catch {
+        // JSON schema differs; leave vramBytes at 0
+      }
       return {
         type: "discrete",
         vendor: "amd",
-        vramGb: 8,
+        model: "AMD GPU (ROCm)",
+        vramGb: Math.round((vramBytes / (1024 * 1024 * 1024)) * 10) / 10,
         cudaAvailable: false,
         rocmAvailable: true,
       };
@@ -172,10 +195,20 @@ export class HardwareProfiler {
 
       if (process.platform === "linux") {
         try {
-          const { stdout } = await execAsync("df -P .");
-          const firstCol = stdout.split("\n")[1]?.split(/\s+/)[0] || "";
-          if (firstCol.includes("nvme")) {
+          const quoted = `'${targetPath.replace(/'/g, `'\\''`)}'`;
+          const { stdout } = await execAsync(`df -P ${quoted}`);
+          const device = stdout.split("\n")[1]?.split(/\s+/)[0] || "";
+          if (device.includes("nvme")) {
             type = "nvme";
+          } else if (device.startsWith("/dev/")) {
+            // e.g. /dev/sda2 -> /dev/sda
+            const base = device.replace(/\d+$/, "").split("/").pop() || "";
+            try {
+              const rotational = (await fs.readFile(`/sys/block/${base}/queue/rotational`, "utf-8")).trim();
+              type = rotational === "1" ? "hdd" : "ssd";
+            } catch {
+              type = "ssd";
+            }
           }
         } catch {
           // ignore

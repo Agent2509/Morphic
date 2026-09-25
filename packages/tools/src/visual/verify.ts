@@ -32,6 +32,35 @@ async function readCapped(response: Response, maxBytes: number): Promise<string>
   return out.slice(0, maxBytes);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Lightweight selector check against raw HTML: supports #id, .class,
+ * [attr=value], and bare tag names.
+ */
+export function selectorMatches(content: string, selector: string): boolean {
+  const sel = selector.trim();
+  if (!sel) return true;
+
+  if (sel.startsWith("#")) {
+    const id = escapeRegExp(sel.slice(1));
+    return new RegExp(`id\\s*=\\s*["']${id}["']`, "i").test(content);
+  }
+  if (sel.startsWith(".")) {
+    const cls = escapeRegExp(sel.slice(1));
+    return new RegExp(`class\\s*=\\s*["'][^"']*\\b${cls}\\b[^"']*["']`, "i").test(content);
+  }
+  const attr = sel.match(/^\[?([\w-]+)\s*=\s*["']?([^"'\]]+)["']?\]?$/);
+  if (attr && (sel.startsWith("[") || sel.includes("="))) {
+    const [, name, value] = attr;
+    return new RegExp(`${escapeRegExp(name)}\\s*=\\s*["']?${escapeRegExp(value)}`, "i").test(content);
+  }
+  const tag = escapeRegExp(sel.replace(/^<|>$/g, ""));
+  return new RegExp(`<${tag}[\\s/>]`, "i").test(content);
+}
+
 export const visualVerifyTool: Tool<typeof VisualVerifySchema> = {
   name: "visual_verify",
   description: "Verify frontend web application status, HTML rendering health, and detect console errors or missing assets.",
@@ -102,7 +131,7 @@ export const visualVerifyTool: Tool<typeof VisualVerifySchema> = {
       // Check expectedSelector if provided
       let selectorFound = true;
       if (args.expectedSelector) {
-        selectorFound = content.includes(args.expectedSelector);
+        selectorFound = selectorMatches(content, args.expectedSelector);
       }
 
       const success = statusCode >= 200 && statusCode < 400 && fatalErrors.length === 0 && selectorFound;

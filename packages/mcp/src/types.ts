@@ -47,6 +47,13 @@ export interface HttpServerConfig {
 
 export type McpServerConfig = StdioServerConfig | HttpServerConfig;
 
+export interface McpTransport {
+  start(): void;
+  notify(method: string, params?: any): void;
+  send(method: string, params?: any): Promise<any>;
+  close(): void;
+}
+
 export interface McpConfigFile {
   mcpServers: Record<string, McpServerConfig>;
 }

@@ -53,7 +53,7 @@ A next-generation, self-calibrating AI coding agent that automatically adapts to
 - **Phase 2** (Self-Calibration): Completed (Hardware profiler, Ollama benchmarker, T1-T5 classifier, thermal/power monitors, smart router, calibration CLI/TUI)
 - **Phase 3** (Multi-Agent Pipeline): Completed (Planner, Researcher, Coder, Reviewer, Tester, adaptive 1/3/5 scaling, retry loop, AgentPipeline TUI)
 - **Phase 4** (Intelligence & Memory): Completed (PageRank repo map, LSP symbol queries, KnowledgeGraph, ProjectRulesParser, SQLite WAL session store, Shadow Git snapshot & /undo rollback, ContextCompactor)
-- **Phase 6** (Polish & IDE): Completed (ACP JSON-RPC stdio + authenticated WebSocket server, first-run setup wizard, VS Code extension, ast_rewrite, visual_verify, dap_inspect, PluginLoader, README, CONTRIBUTING, 218 passing unit tests, ~96% line coverage)
+- **Phase 6** (Polish & IDE): Completed (ACP JSON-RPC stdio + authenticated WebSocket server, first-run setup wizard, VS Code extension, ast_rewrite, visual_verify, dap_inspect, PluginLoader, README, CONTRIBUTING, 239 passing unit tests, ~92% line coverage)
 
 ## Hardware Profile (Dev Machine)
 

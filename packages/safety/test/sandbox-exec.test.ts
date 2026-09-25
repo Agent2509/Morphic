@@ -34,9 +34,19 @@ describe("PodmanSandbox execution", () => {
       env: { FOO: "bar" },
     });
     expect(args).toContain("--network=bridge");
+    expect(args).toContain("--cap-drop=ALL");
+    expect(args).toContain("--security-opt=no-new-privileges");
+    expect(args).toContain("--pids-limit=256");
     expect(args).toContain("-e");
     expect(args).toContain("FOO=bar");
     expect(args[args.length - 4]).toBe("node:20");
     expect(args).toContain("--");
+  });
+
+  it("rejects cwd values that could break the volume spec", () => {
+    const sandbox = new PodmanSandbox();
+    expect(() =>
+      sandbox.buildPodmanArgs("echo x", { cwd: "/tmp:/etc" })
+    ).toThrow("Invalid sandbox working directory");
   });
 });

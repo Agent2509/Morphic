@@ -49,6 +49,21 @@ export class RepoMapGenerator {
           imports.push(...names);
         } else if (importMatch[2]) {
           imports.push(importMatch[2]);
+        } else if (importMatch[3]) {
+          imports.push(importMatch[3]);
+        }
+      }
+
+      // Re-exports: treat exported names as imports (out-edge) + exports (provider).
+      const reexportMatch = line.match(/^export\s+(?:\*|\{([^}]+)\})\s+from\s+['"][^'"]+['"]/);
+      if (reexportMatch) {
+        if (reexportMatch[1]) {
+          const names = reexportMatch[1].split(",").map((s) => s.trim().split(" as ").pop()!.trim());
+          for (const name of names) {
+            if (!name) continue;
+            exports.push(name);
+            imports.push(name);
+          }
         }
       }
 
@@ -87,49 +102,55 @@ export class RepoMapGenerator {
     const n = filePaths.length;
     if (n === 0) return;
 
-    // Initial rank 1 / n
     for (const file of files.values()) {
       file.pageRank = 1 / n;
     }
 
-    // Build incoming reference map: file -> who imports/references this file's exports
+    // symbol -> provider (first definition wins, deterministic).
     const symbolToProvider = new Map<string, string>();
     for (const [pathKey, info] of files.entries()) {
       for (const sym of info.exports) {
-        symbolToProvider.set(sym, pathKey);
+        if (!symbolToProvider.has(sym)) symbolToProvider.set(sym, pathKey);
       }
     }
 
+    // Resolve internal out-edges and incoming edges.
+    const outEdges = new Map<string, Set<string>>();
     const incomingEdges = new Map<string, Set<string>>();
     for (const pathKey of filePaths) {
-      incomingEdges.set(pathKey, new Set<string>());
+      outEdges.set(pathKey, new Set());
+      incomingEdges.set(pathKey, new Set());
     }
 
     for (const [consumerPath, info] of files.entries()) {
       for (const imp of info.imports) {
         const provider = symbolToProvider.get(imp);
         if (provider && provider !== consumerPath) {
-          incomingEdges.get(provider)?.add(consumerPath);
+          outEdges.get(consumerPath)!.add(provider);
+          incomingEdges.get(provider)!.add(consumerPath);
         }
       }
     }
 
-    // Power iteration
     for (let it = 0; it < iterations; it++) {
-      const nextRanks = new Map<string, number>();
+      let danglingSum = 0;
+      for (const pathKey of filePaths) {
+        if (outEdges.get(pathKey)!.size === 0) {
+          danglingSum += files.get(pathKey)?.pageRank || 0;
+        }
+      }
+      const danglingShare = (damping * danglingSum) / n;
 
+      const nextRanks = new Map<string, number>();
       for (const pathKey of filePaths) {
         let sum = 0;
-        const callers = incomingEdges.get(pathKey) || new Set();
-
-        for (const caller of callers) {
-          const callerInfo = files.get(caller);
-          const callerOutDegree = Math.max(1, callerInfo?.imports.length || 1);
-          sum += (callerInfo?.pageRank || 0) / callerOutDegree;
+        for (const caller of incomingEdges.get(pathKey)!) {
+          const callerOut = outEdges.get(caller)!.size;
+          if (callerOut > 0) {
+            sum += (files.get(caller)?.pageRank || 0) / callerOut;
+          }
         }
-
-        const newRank = (1 - damping) / n + damping * sum;
-        nextRanks.set(pathKey, newRank);
+        nextRanks.set(pathKey, (1 - damping) / n + damping * sum + danglingShare);
       }
 
       for (const [pathKey, rank] of nextRanks.entries()) {
@@ -194,6 +215,10 @@ export class RepoMapGenerator {
       }
 
       if ((result + fileChunk).length > charBudget) {
+        // Always surface at least the top-ranked file, truncated if needed.
+        if (result.length === 0) {
+          result += fileChunk.slice(0, Math.max(0, charBudget));
+        }
         break;
       }
       result += fileChunk;

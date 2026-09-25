@@ -14,11 +14,11 @@ export interface TelemetryEvent {
 export class TelemetryReporter {
   private logPath: string;
   private enabled: boolean;
-  // Serializes writes within the process to avoid lost updates.
+  // Serializes writes within the process; O_APPEND keeps cross-process writes safe.
   private queue: Promise<void> = Promise.resolve();
 
   constructor(baseDir: string = process.cwd(), enabled: boolean = false) {
-    this.logPath = path.join(baseDir, ".morphic", "telemetry.json");
+    this.logPath = path.join(baseDir, ".morphic", "telemetry.jsonl");
     this.enabled = enabled;
   }
 
@@ -30,35 +30,14 @@ export class TelemetryReporter {
 
   private async write(event: Omit<TelemetryEvent, "timestamp">): Promise<void> {
     try {
-      const fullEvent: TelemetryEvent = {
-        ...event,
-        timestamp: new Date().toISOString(),
-      };
-
+      const fullEvent: TelemetryEvent = { ...event, timestamp: new Date().toISOString() };
       await fs.mkdir(path.dirname(this.logPath), { recursive: true });
-
-      let existing: TelemetryEvent[] = [];
-      try {
-        const raw = await fs.readFile(this.logPath, "utf-8");
-        const parsed = JSON.parse(raw);
-        existing = Array.isArray(parsed) ? parsed : [];
-      } catch (err: any) {
-        if (err?.code !== "ENOENT") {
-          // Preserve unreadable telemetry instead of destroying it.
-          try {
-            await fs.rename(this.logPath, `${this.logPath}.corrupt-${Date.now()}`);
-          } catch {
-            // ignore
-          }
-        }
-        existing = [];
-      }
-
-      existing.push(fullEvent);
-
-      const tmpPath = `${this.logPath}.${process.pid}.tmp`;
-      await fs.writeFile(tmpPath, JSON.stringify(existing, null, 2), "utf-8");
-      await fs.rename(tmpPath, this.logPath);
+      // Single append of one line is atomic on POSIX, so concurrent processes
+      // never overwrite each other's events.
+      await fs.appendFile(this.logPath, JSON.stringify(fullEvent) + "\n", {
+        encoding: "utf-8",
+        mode: 0o600,
+      });
     } catch {
       // Telemetry must never crash the agent
     }

@@ -157,6 +157,25 @@ describe("FS tool edge cases", () => {
     expect(remote.error).toContain("non-local");
   });
 
+  it("visual_verify selector matching supports id/class/tag/attr", async () => {
+    const html = `<html><body><div id="app" class="root main" data-role="shell"><span>hi</span></div></body></html>`;
+    await fs.writeFile(path.join(dir, "sel.html"), html, "utf-8");
+
+    for (const selector of ["#app", ".main", "div", "[data-role=shell]", "id='app'"]) {
+      const res = await visualVerifyTool.execute(
+        { target: "sel.html", expectedSelector: selector },
+        { cwd: dir }
+      );
+      expect(res.success).toBe(true);
+    }
+
+    const miss = await visualVerifyTool.execute(
+      { target: "sel.html", expectedSelector: "#nope" },
+      { cwd: dir }
+    );
+    expect(miss.success).toBe(false);
+  });
+
   it("ast_rewrite handles metavariable prefixes correctly", async () => {
     await fs.writeFile(path.join(dir, "r.txt"), "foo and bar", "utf-8");
     const res = await astRewriteTool.execute(
