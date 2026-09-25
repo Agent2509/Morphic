@@ -29,7 +29,6 @@
       "name": "@morphic/agents",
       "version": "0.1.0",
       "dependencies": {
-        "@morphic/calibration": "workspace:*",
         "@morphic/core": "workspace:*",
         "@morphic/providers": "workspace:*",
         "@morphic/tools": "workspace:*",

@@ -103,23 +103,29 @@ graph TD
 
 ## 📦 Installation
 
-### 1. Zero-Dependency One-Liner (Recommended)
+### Prerequisites
+- **Bun** v1.2+ — runtime (`curl -fsSL https://bun.sh/install | bash`)
+- **Git** — required for shadow-git snapshots / `undo`
+- **Ollama** — optional, for local models (`ollama serve`)
+- **Podman** — optional, for `--sandbox`
+
+### 1. One-Liner (once the repo is public)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mohdfaizanali/morphic/main/install.sh | bash
 ```
 
-### 2. From Bun / Source
+### 2. From Source
 ```bash
-# Clone the repository
 git clone https://github.com/mohdfaizanali/morphic.git
 cd morphic
 
-# Install dependencies and build
 bun install
 bun run build
 
-# Link globally
-bun link
+# Install the `morphic` command into ~/.local/bin (must be on PATH)
+bun run install:global
+# ...or build + install in one step:
+bun run release
 ```
 
 ### 3. Compile Standalone Single-File Binary

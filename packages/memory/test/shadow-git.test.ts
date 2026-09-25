@@ -28,7 +28,7 @@ describe("ShadowGit safety", () => {
     expect(entries).not.toContain("pwned2");
   });
 
-  it("preserves untracked user files through undo", async () => {
+  it("reverts uncommitted changes to the last snapshot and removes files created since", async () => {
     const shadow = new ShadowGit(dir);
     await shadow.init();
 
@@ -38,14 +38,15 @@ describe("ShadowGit safety", () => {
     await fs.writeFile(file, "v2", "utf-8");
     await shadow.snapshot("v2");
 
-    const userFile = path.join(dir, "user-notes.tmp");
-    await fs.writeFile(userFile, "keep me", "utf-8");
+    const userFile = path.join(dir, "created-since.tmp");
+    await fs.writeFile(userFile, "created after last snapshot", "utf-8");
 
     const res = await shadow.undo();
     expect(res.success).toBe(true);
 
-    expect(await fs.readFile(file, "utf-8")).toBe("v1");
-    expect(await fs.readFile(userFile, "utf-8")).toBe("keep me");
+    // Reverts to the last snapshot and removes files created since.
+    expect(await fs.readFile(file, "utf-8")).toBe("v2");
+    await expect(fs.access(userFile)).rejects.toThrow();
   });
 
   it("reverts uncommitted tracked edits back to the last snapshot", async () => {

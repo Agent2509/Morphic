@@ -94,16 +94,29 @@ export class ShadowGit {
     }
 
     try {
-      // If there are uncommitted tracked changes (e.g. an agent turn that ran
-      // without an intervening snapshot), capture them first so the revert has
-      // a well-defined target. Untracked files are ignored and preserved.
-      const trackedDirty = await this.git(["diff", "--name-only", "HEAD"]).catch(() => "");
-      if (trackedDirty) {
+      const head = await this.git(["rev-parse", "HEAD"]);
+      const status = await this.git(["status", "--porcelain"]).catch(() => "");
+
+      // If there are uncommitted changes (tracked OR new untracked files created
+      // since the last snapshot), record them on a side ref for recovery, then
+      // revert the work tree to the last snapshot.
+      if (status.trim().length > 0) {
         await this.snapshot("Pre-undo safety snapshot");
+        await this.git(["update-ref", "refs/morphic/safety", "HEAD"]).catch(() => "");
+
+        const { filesChanged, addedFiles } = await this.diffNameStatus(head, "refs/morphic/safety");
+        await this.git(["reset", "--hard", head]);
+        const deletedCount = await this.removeFiles(addedFiles);
+
+        return {
+          success: true,
+          message: `Reverted uncommitted changes to snapshot ${head.slice(0, 8)} (${filesChanged.length} files changed; ${deletedCount} created files removed).`,
+          revertedCommit: head,
+          filesChanged,
+        };
       }
 
-      const currentHead = await this.git(["rev-parse", "HEAD"]);
-
+      // Clean work tree: step back one snapshot.
       const countStr = await this.git(["rev-list", "--count", "HEAD"]);
       const count = parseInt(countStr, 10);
       if (!Number.isFinite(count) || count <= 1) {
@@ -111,59 +124,14 @@ export class ShadowGit {
       }
 
       const target = await this.git(["rev-parse", "HEAD~1"]);
-
-      // Files touched by the snapshot being reverted (status: A/M/D)
-      let filesChanged: string[] = [];
-      const addedFiles: string[] = [];
-      try {
-        const nameStatus = await this.git([
-          "diff-tree",
-          "--no-commit-id",
-          "--name-status",
-          "-r",
-          "-M",
-          currentHead,
-        ]);
-        for (const line of nameStatus.split("\n").filter(Boolean)) {
-          const parts = line.split("\t");
-          const status = parts[0];
-          const filePath = parts[parts.length - 1];
-          if (!filePath) continue;
-          filesChanged.push(filePath);
-          if (status.startsWith("A")) addedFiles.push(filePath);
-        }
-      } catch {
-        // fallback: no file list
-      }
-
-      // Record any uncommitted user work before mutating, so undo is itself recoverable
-      await this.snapshot("Pre-undo safety snapshot");
-
-      // Move HEAD + index back without touching the working tree, then restore
-      // tracked files to the target revision.
-      await this.git(["reset", "--mixed", target]);
-      await this.git(["checkout", target, "--", "."]);
-
-      // Exact revert: remove files that the undone snapshot created (and that
-      // therefore do not exist in the target revision).
-      let deletedCount = 0;
-      for (const rel of addedFiles) {
-        const abs = path.resolve(this.workTree, rel);
-        if (abs !== this.workTree && !abs.startsWith(this.workTree + path.sep)) {
-          continue; // never delete outside the work tree
-        }
-        try {
-          await fs.rm(abs, { force: true });
-          deletedCount++;
-        } catch {
-          // ignore
-        }
-      }
+      const { filesChanged, addedFiles } = await this.nameStatus(head);
+      await this.git(["reset", "--hard", target]);
+      const deletedCount = await this.removeFiles(addedFiles);
 
       return {
         success: true,
-        message: `Reverted workspace to snapshot before ${currentHead.slice(0, 8)} (${filesChanged.length} files changed; ${deletedCount} created files removed).`,
-        revertedCommit: currentHead,
+        message: `Reverted workspace to snapshot before ${head.slice(0, 8)} (${filesChanged.length} files changed; ${deletedCount} created files removed).`,
+        revertedCommit: head,
         filesChanged,
       };
     } catch (err: any) {
@@ -172,6 +140,71 @@ export class ShadowGit {
         message: `Undo failed: ${err.message}`,
       };
     }
+  }
+
+  private async nameStatus(commit: string): Promise<{ filesChanged: string[]; addedFiles: string[] }> {
+    const filesChanged: string[] = [];
+    const addedFiles: string[] = [];
+    try {
+      const nameStatus = await this.git([
+        "diff-tree",
+        "--no-commit-id",
+        "--name-status",
+        "-r",
+        "-M",
+        commit,
+      ]);
+      for (const line of nameStatus.split("\n").filter(Boolean)) {
+        const parts = line.split("\t");
+        const status = parts[0];
+        const filePath = parts[parts.length - 1];
+        if (!filePath) continue;
+        filesChanged.push(filePath);
+        if (status.startsWith("A")) addedFiles.push(filePath);
+      }
+    } catch {
+      // no file list available
+    }
+    return { filesChanged, addedFiles };
+  }
+
+  private async diffNameStatus(
+    from: string,
+    to: string
+  ): Promise<{ filesChanged: string[]; addedFiles: string[] }> {
+    const filesChanged: string[] = [];
+    const addedFiles: string[] = [];
+    try {
+      const out = await this.git(["diff", "--name-status", "-M", from, to]);
+      for (const line of out.split("\n").filter(Boolean)) {
+        const parts = line.split("\t");
+        const status = parts[0];
+        const filePath = parts[parts.length - 1];
+        if (!filePath) continue;
+        filesChanged.push(filePath);
+        if (status.startsWith("A")) addedFiles.push(filePath);
+      }
+    } catch {
+      // no file list available
+    }
+    return { filesChanged, addedFiles };
+  }
+
+  private async removeFiles(relativePaths: string[]): Promise<number> {
+    let deleted = 0;
+    for (const rel of relativePaths) {
+      const abs = path.resolve(this.workTree, rel);
+      if (abs !== this.workTree && !abs.startsWith(this.workTree + path.sep)) {
+        continue; // never delete outside the work tree
+      }
+      try {
+        await fs.rm(abs, { force: true });
+        deleted++;
+      } catch {
+        // ignore
+      }
+    }
+    return deleted;
   }
 
   async history(limit: number = 10): Promise<Array<{ hash: string; message: string; date: string }>> {

@@ -7,7 +7,6 @@
   "dependencies": {
     "@morphic/core": "workspace:*",
     "@morphic/providers": "workspace:*",
-    "@morphic/tools": "workspace:*",
-    "@morphic/calibration": "workspace:*"
+    "@morphic/tools": "workspace:*"
   }
 }

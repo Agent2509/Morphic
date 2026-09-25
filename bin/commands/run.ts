@@ -319,6 +319,12 @@ export function registerRunCommand(program: Command): void {
           return;
         }
 
+        if (permLevel !== PermissionLevel.Auto) {
+          process.stderr.write(
+            "Note: non-interactive mode cannot prompt for approval; edits and commands without an alwaysAllow rule may be denied. Use --auto to allow them.\n"
+          );
+        }
+
         try {
           if (coordinator) {
             const complexity = smartRouter.classifyComplexity(promptToRun);
