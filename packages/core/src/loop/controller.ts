@@ -2,7 +2,7 @@ import type { ModelProvider, ToolCall } from "@morphic/providers";
 import { type ToolRegistry, type ToolResult } from "@morphic/tools";
 import { PermissionEngine } from "../permission/engine.js";
 import { ContextManager } from "../context/manager.js";
-import { parseToolCallsFromText } from "./tool-call-parser.js";
+import { parseToolCallsFromText, stripToolCallsFromText } from "./tool-call-parser.js";
 
 export interface AgentEvents {
   onToken?: (token: string) => void;
@@ -129,7 +129,10 @@ export class AgentController {
             Boolean(this.tools.get(n))
           );
           if (recovered.length > 0) {
-            this.context.addAssistantMessage(streamResult.content, recovered);
+            const cleanContent = stripToolCallsFromText(streamResult.content, (n) =>
+              Boolean(this.tools.get(n))
+            );
+            this.context.addAssistantMessage(cleanContent, recovered);
             for (const tc of recovered) {
               await this.executeToolCall(tc, events);
             }
@@ -140,9 +143,12 @@ export class AgentController {
 
         if (!toolCalls || toolCalls.length === 0) {
           // Final text response with no pending tool calls
-          this.context.addAssistantMessage(streamResult.content);
+          const cleanText = stripToolCallsFromText(streamResult.content, (n) =>
+            Boolean(this.tools.get(n))
+          );
+          this.context.addAssistantMessage(cleanText);
           events.onStatusChange?.("Idle");
-          return streamResult.content;
+          return cleanText;
         }
 
         // Add assistant message with tool calls to context

@@ -296,6 +296,7 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
           },
           onToolStart: (id, name, args) => {
             setIsThinking(false);
+            setCurrentStream("");
             toolStartTimes.current.set(id, Date.now());
             setLogs((prev) => [
               ...prev,
@@ -345,6 +346,7 @@ export const MorphicApp: React.FC<MorphicAppProps> = ({
           },
           onToolStart: (id, name, args) => {
             setIsThinking(false);
+            setCurrentStream("");
             toolStartTimes.current.set(id, Date.now());
             setLogs((prev) => [
               ...prev,

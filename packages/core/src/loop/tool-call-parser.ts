@@ -1,7 +1,13 @@
 import type { ToolCall } from "@morphic/providers";
 
-function extractBalancedObjects(text: string): string[] {
-  const out: string[] = [];
+interface ObjectSpan {
+  text: string;
+  start: number;
+  end: number;
+}
+
+function extractBalancedObjectsWithSpans(text: string): ObjectSpan[] {
+  const out: ObjectSpan[] = [];
   let depth = 0;
   let start = -1;
   let inString = false;
@@ -25,7 +31,7 @@ function extractBalancedObjects(text: string): string[] {
       if (depth > 0) {
         depth--;
         if (depth === 0 && start !== -1) {
-          out.push(text.slice(start, i + 1));
+          out.push({ text: text.slice(start, i + 1), start, end: i + 1 });
           start = -1;
         }
       }
@@ -33,6 +39,10 @@ function extractBalancedObjects(text: string): string[] {
   }
 
   return out;
+}
+
+function extractBalancedObjects(text: string): string[] {
+  return extractBalancedObjectsWithSpans(text).map((s) => s.text);
 }
 
 function toToolCall(
@@ -101,4 +111,45 @@ export function parseToolCallsFromText(
   }
 
   return calls;
+}
+
+export function stripToolCallsFromText(
+  content: string,
+  isKnownTool: (name: string) => boolean
+): string {
+  if (!content) return "";
+
+  const spansToRemove: { start: number; end: number }[] = [];
+  for (const span of extractBalancedObjectsWithSpans(content)) {
+    try {
+      const parsed = JSON.parse(span.text);
+      const values = Array.isArray(parsed) ? parsed : [parsed];
+      let hasTool = false;
+      for (const val of values) {
+        if (toToolCall(val, isKnownTool)) {
+          hasTool = true;
+          break;
+        }
+      }
+      if (hasTool) {
+        spansToRemove.push({ start: span.start, end: span.end });
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  if (spansToRemove.length === 0) return content;
+
+  // Remove spans from back to front to keep character offsets valid
+  spansToRemove.sort((a, b) => b.start - a.start);
+  let cleaned = content;
+  for (const span of spansToRemove) {
+    cleaned = cleaned.slice(0, span.start) + cleaned.slice(span.end);
+  }
+
+  // Also clean up any empty markdown fences (e.g. ```json \n ```) leftover
+  cleaned = cleaned.replace(/```(?:json)?\s*```/g, "");
+
+  return cleaned.trim();
 }

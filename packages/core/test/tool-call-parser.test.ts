@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseToolCallsFromText } from "../src/loop/tool-call-parser.js";
+import { parseToolCallsFromText, stripToolCallsFromText } from "../src/loop/tool-call-parser.js";
 
 const known = (name: string) => ["read_file", "shell_exec", "edit_file"].includes(name);
 const anyKnown = () => true;
@@ -45,5 +45,16 @@ Then I'll continue.`;
   it("returns no calls for plain assistant text", () => {
     expect(parseToolCallsFromText("All done. No tools needed.", known)).toHaveLength(0);
     expect(parseToolCallsFromText("", known)).toHaveLength(0);
+  });
+
+  it("strips tool calls from text leaving surrounding prose", () => {
+    const content = `I'll create the file now: {"name": "create_file", "arguments": {"path": "test.txt", "content": "hello"}} Done creating file!`;
+    const knownTools = (n: string) => n === "create_file";
+    expect(stripToolCallsFromText(content, knownTools)).toBe("I'll create the file now:  Done creating file!");
+  });
+
+  it("returns empty string when content is only a tool call JSON", () => {
+    const content = `{"name": "read_file", "arguments": {"path": "foo.ts"}}`;
+    expect(stripToolCallsFromText(content, known)).toBe("");
   });
 });

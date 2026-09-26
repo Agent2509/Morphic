@@ -151,7 +151,8 @@ export const Stream: React.FC<StreamProps> = ({
         }
 
         if (log.type === "assistant") {
-          const cleanedContent = filterRedundantCodeDumps(log.content, createdFiles);
+          const cleanedContent = cleanAssistantContent(log.content, createdFiles);
+          if (!cleanedContent) return null;
           return (
             <Box key={log.id} marginY={1} flexDirection="column">
               <MarkdownView content={cleanedContent} />
@@ -187,14 +188,29 @@ export const Stream: React.FC<StreamProps> = ({
       )}
 
       {/* Live Streaming Content */}
-      {currentStream.length > 0 && (
+      {currentStream.trim().length > 0 && (
         <Box flexDirection="column" marginTop={1}>
-          <MarkdownView content={currentStream} />
+          <MarkdownView content={cleanAssistantContent(currentStream, createdFiles)} />
         </Box>
       )}
     </Box>
   );
 };
+
+/**
+ * Filter raw tool call JSON leakage and redundant code block dumps.
+ */
+function cleanAssistantContent(content: string, createdFiles: Set<string>): string {
+  if (!content) return "";
+
+  // Strip tool call JSON payloads if they leaked into text
+  let cleaned = content
+    .replace(/\{"name":\s*"(?:create_file|edit_file|read_file|shell_exec|grep_search)"[\s\S]*?\}/g, "")
+    .replace(/```(?:json)?\s*\{[\s\S]*?"(?:name|tool)":\s*"(?:create_file|edit_file|read_file|shell_exec|grep_search)"[\s\S]*?\}\s*```/g, "");
+
+  cleaned = filterRedundantCodeDumps(cleaned, createdFiles);
+  return cleaned.trim();
+}
 
 /**
  * If the model printed a massive markdown code block describing the file
